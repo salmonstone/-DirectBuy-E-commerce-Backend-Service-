@@ -85,11 +85,4 @@ output "configure_kubectl" {
   value = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}"
 }
 output "s3_bucket_name"    { value = aws_s3_bucket.images.bucket }
-```
 
----
-
-Only one line changed:
-```
-# Added this line to aws_s3_bucket_policy:
-depends_on = [aws_s3_bucket_public_access_block.images]
