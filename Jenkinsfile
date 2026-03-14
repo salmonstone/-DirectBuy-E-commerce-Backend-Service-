@@ -34,18 +34,20 @@ pipeline {
             }
         }
 
-        stage('🔐 Trivy Security Scan') {
-            steps {
-                echo '--- Scanning image ---'
-                sh '''
-                    trivy image \
-                        --exit-code 0 \
-                        --severity HIGH,CRITICAL \
-                        --format table \
-                        ${DOCKERHUB_REPO}:${IMAGE_TAG}
-                '''
-            }
-        }
+       stage('🔐 Trivy Security Scan') {
+    steps {
+        echo '--- Scanning image ---'
+        sh '''
+            trivy image \
+                --exit-code 0 \
+                --severity HIGH,CRITICAL \
+                --format table \
+                --scanners vuln \
+                --skip-java-db-update \
+                ${DOCKERHUB_REPO}:${IMAGE_TAG}
+        '''
+    }
+}
 
         stage('📤 Push to DockerHub') {
             steps {
