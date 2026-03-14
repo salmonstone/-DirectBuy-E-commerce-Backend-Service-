@@ -38,12 +38,12 @@ pipeline {
     steps {
         echo '--- Scanning image ---'
         sh '''
+            TRIVY_CACHE_DIR=/home/trivy-cache \
             trivy image \
                 --exit-code 0 \
                 --severity HIGH,CRITICAL \
                 --format table \
-                --scanners vuln \
-                --skip-java-db-update \
+                --cache-dir /home/trivy-cache \
                 ${DOCKERHUB_REPO}:${IMAGE_TAG}
         '''
     }
