@@ -20,11 +20,11 @@ module "vpc" {
   enable_dns_hostnames = true
   enable_dns_support   = true
   public_subnet_tags  = {
-    "kubernetes.io/role/elb"                                     = "1"
+    "kubernetes.io/role/elb"                                      = "1"
     "kubernetes.io/cluster/${var.project_name}-cluster" = "shared"
   }
   private_subnet_tags = {
-    "kubernetes.io/role/internal-elb"                            = "1"
+    "kubernetes.io/role/internal-elb"                             = "1"
     "kubernetes.io/cluster/${var.project_name}-cluster" = "shared"
   }
   tags = { Project = var.project_name, ManagedBy = "Terraform" }
@@ -65,8 +65,10 @@ resource "aws_s3_bucket_public_access_block" "images" {
   restrict_public_buckets = false
 }
 
+# depends_on ensures block public policy is disabled BEFORE applying policy
 resource "aws_s3_bucket_policy" "images" {
-  bucket = aws_s3_bucket.images.id
+  depends_on = [aws_s3_bucket_public_access_block.images]
+  bucket     = aws_s3_bucket.images.id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -83,3 +85,11 @@ output "configure_kubectl" {
   value = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}"
 }
 output "s3_bucket_name"    { value = aws_s3_bucket.images.bucket }
+```
+
+---
+
+Only one line changed:
+```
+# Added this line to aws_s3_bucket_policy:
+depends_on = [aws_s3_bucket_public_access_block.images]
