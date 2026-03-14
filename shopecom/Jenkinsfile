@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        DOCKERHUB_REPO = 'YOUR_DOCKERHUB_USERNAME/shopecom'
+        DOCKERHUB_REPO = 'salmonstone/shopecom'
         IMAGE_TAG      = "${BUILD_NUMBER}"
         K8S_NS         = 'shopecom'
         APP_NAME       = 'shopecom'
@@ -14,7 +14,7 @@ pipeline {
             steps {
                 echo '--- Pulling code from GitHub ---'
                 git branch: 'main',
-                    url: 'https://github.com/YOUR_GITHUB_USERNAME/shopping-cart-spring-boot.git'
+                    url: 'https://github.com/salmonstone/-DirectBuy-E-commerce-Backend-Service-.git'
             }
         }
 
