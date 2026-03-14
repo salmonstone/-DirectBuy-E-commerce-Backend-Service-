@@ -1,0 +1,33 @@
+# Maven
+target/
+*.jar
+*.war
+
+# Secrets — NEVER commit these
+application-local.properties
+.env
+*.pem
+*.key
+
+# Terraform state
+terraform/.terraform/
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform.lock.hcl
+
+# IDE
+.idea/
+*.iml
+.eclipse/
+.settings/
+.classpath
+.project
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/

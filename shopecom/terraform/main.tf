@@ -1,0 +1,85 @@
+terraform {
+  required_version = ">= 1.5.0"
+  required_providers {
+    aws = { source = "hashicorp/aws", version = "~> 5.0" }
+  }
+}
+
+provider "aws" { region = var.aws_region }
+
+module "vpc" {
+  source               = "terraform-aws-modules/vpc/aws"
+  version              = "5.0.0"
+  name                 = "${var.project_name}-vpc"
+  cidr                 = var.vpc_cidr
+  azs                  = var.availability_zones
+  private_subnets      = var.private_subnet_cidrs
+  public_subnets       = var.public_subnet_cidrs
+  enable_nat_gateway   = true
+  single_nat_gateway   = true
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  public_subnet_tags  = {
+    "kubernetes.io/role/elb"                                     = "1"
+    "kubernetes.io/cluster/${var.project_name}-cluster" = "shared"
+  }
+  private_subnet_tags = {
+    "kubernetes.io/role/internal-elb"                            = "1"
+    "kubernetes.io/cluster/${var.project_name}-cluster" = "shared"
+  }
+  tags = { Project = var.project_name, ManagedBy = "Terraform" }
+}
+
+module "eks" {
+  source          = "terraform-aws-modules/eks/aws"
+  version         = "19.21.0"
+  cluster_name    = "${var.project_name}-cluster"
+  cluster_version = "1.29"
+  cluster_endpoint_public_access = true
+  vpc_id          = module.vpc.vpc_id
+  subnet_ids      = module.vpc.private_subnets
+  eks_managed_node_groups = {
+    shopecom_nodes = {
+      instance_types = [var.node_instance_type]
+      min_size       = var.node_min_size
+      max_size       = var.node_max_size
+      desired_size   = var.node_desired_size
+    }
+  }
+  tags = { Project = var.project_name, ManagedBy = "Terraform" }
+}
+
+# S3 bucket for product/profile images
+resource "aws_s3_bucket" "images" {
+  bucket = "${var.project_name}-images-${random_id.suffix.hex}"
+  tags   = { Project = var.project_name }
+}
+
+resource "random_id" "suffix" { byte_length = 4 }
+
+resource "aws_s3_bucket_public_access_block" "images" {
+  bucket                  = aws_s3_bucket.images.id
+  block_public_acls       = false
+  block_public_policy     = false
+  ignore_public_acls      = false
+  restrict_public_buckets = false
+}
+
+resource "aws_s3_bucket_policy" "images" {
+  bucket = aws_s3_bucket.images.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = "*"
+      Action    = "s3:GetObject"
+      Resource  = "${aws_s3_bucket.images.arn}/*"
+    }]
+  })
+}
+
+output "cluster_name"      { value = module.eks.cluster_name }
+output "configure_kubectl" {
+  value = "aws eks update-kubeconfig --region ${var.aws_region} --name ${module.eks.cluster_name}"
+}
+output "s3_bucket_name"    { value = aws_s3_bucket.images.bucket }

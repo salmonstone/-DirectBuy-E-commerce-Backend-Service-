@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:fragment="head(title)">
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title th:text="${title}">ShopEcom</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+  <style>
+    * { font-family: 'Inter', sans-serif; }
+
+    /* ── Navbar ── */
+    .top-nav { background: #131921; padding: 10px 0; }
+    .top-nav .logo { color:#fff; font-size:1.6rem; font-weight:800; text-decoration:none; letter-spacing:-1px; }
+    .top-nav .logo span { color:#f0c14b; }
+    .search-bar { flex:1; max-width:600px; margin:0 20px; }
+    .search-bar .form-control { border:2px solid #f0c14b; border-right:none; border-radius:4px 0 0 4px; font-size:.9rem; }
+    .search-bar .btn-search { background:#f0c14b; border:2px solid #f0c14b; border-radius:0 4px 4px 0; padding:6px 18px; }
+    .nav-links a { color:#ddd; text-decoration:none; font-size:.85rem; }
+    .nav-links a:hover { color:#fff; }
+    .cart-btn { background:#f0c14b; color:#131921; font-weight:700; border-radius:4px; padding:6px 16px; text-decoration:none; }
+    .cart-btn:hover { background:#e5b63e; color:#131921; }
+
+    /* ── Category Nav ── */
+    .cat-nav { background:#232f3e; padding:8px 0; overflow-x:auto; white-space:nowrap; }
+    .cat-nav a { color:#ddd; text-decoration:none; font-size:.85rem; padding:4px 14px; border-radius:3px; display:inline-block; }
+    .cat-nav a:hover { background:rgba(255,255,255,.1); color:#fff; }
+
+    /* ── Footer ── */
+    .footer { background:#131921; color:#aaa; padding:40px 0 20px; margin-top:60px; }
+    .footer h6 { color:#fff; font-weight:600; margin-bottom:12px; }
+    .footer a { color:#aaa; text-decoration:none; font-size:.85rem; display:block; margin-bottom:6px; }
+    .footer a:hover { color:#f0c14b; }
+    .footer-bottom { border-top:1px solid #3d4f5f; margin-top:30px; padding-top:20px; text-align:center; font-size:.8rem; }
+
+    /* ── Alerts ── */
+    .flash-msg { position:fixed; top:80px; right:20px; z-index:9999; min-width:300px; animation:slideIn .3s ease; }
+    @keyframes slideIn { from{transform:translateX(100%);opacity:0} to{transform:translateX(0);opacity:1} }
+  </style>
+</head>
+
+<!-- ════════════════════ NAVBAR ════════════════════ -->
+<div th:fragment="navbar">
+  <nav class="top-nav">
+    <div class="container-fluid px-4">
+      <div class="d-flex align-items-center">
+        <a th:href="@{/}" class="logo me-3">Shop<span>Ecom</span></a>
+
+        <!-- Search -->
+        <form th:action="@{/products}" method="get" class="search-bar d-flex d-none d-md-flex">
+          <input type="text" name="ch" class="form-control" placeholder="Search products, brands and more..."/>
+          <button type="submit" class="btn btn-search">🔍</button>
+        </form>
+
+        <!-- Nav Links -->
+        <div class="nav-links ms-auto d-flex align-items-center gap-3">
+          <div sec:authorize="!isAuthenticated()">
+            <a th:href="@{/signin}" class="d-block">Sign In</a>
+            <a th:href="@{/register}" class="d-block">New User?</a>
+          </div>
+          <div sec:authorize="isAuthenticated()">
+            <a th:href="@{/user/}" th:if="${user}" class="d-block"
+               th:text="'Hello, ' + ${user.name}">Hello</a>
+            <a th:href="@{/user/my-orders}" class="d-block">My Orders</a>
+          </div>
+          <div sec:authorize="hasRole('ROLE_ADMIN')">
+            <a th:href="@{/admin/}" class="d-block text-warning">Admin Panel</a>
+          </div>
+          <a sec:authorize="isAuthenticated()" th:href="@{/user/cart}" class="cart-btn position-relative">
+            🛒 Cart
+            <span th:if="${countCart != null and countCart > 0}"
+                  class="badge bg-danger rounded-pill position-absolute"
+                  style="top:-8px;right:-8px;font-size:.65rem;"
+                  th:text="${countCart}">0</span>
+          </a>
+          <a sec:authorize="!isAuthenticated()" th:href="@{/signin}" class="cart-btn">🛒 Cart</a>
+          <a sec:authorize="isAuthenticated()" th:href="@{/logout}"
+             class="nav-link d-block" style="color:#f66;font-size:.8rem;">Logout</a>
+        </div>
+      </div>
+
+      <!-- Mobile Search -->
+      <form th:action="@{/products}" method="get" class="d-flex d-md-none mt-2">
+        <input type="text" name="ch" class="form-control form-control-sm" placeholder="Search..."/>
+        <button type="submit" class="btn btn-sm btn-search ms-1">🔍</button>
+      </form>
+    </div>
+  </nav>
+
+  <!-- Category Nav -->
+  <div class="cat-nav">
+    <div class="container-fluid px-4">
+      <a th:href="@{/products}">All Products</a>
+      <a th:each="cat : ${categorys}" th:href="@{/products(category=${cat.name})}"
+         th:text="${cat.name}">Category</a>
+    </div>
+  </div>
+
+  <!-- Flash Messages -->
+  <div th:if="${session.succMsg}" class="flash-msg">
+    <div class="alert alert-success alert-dismissible shadow">
+      <span th:text="${session.succMsg}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <th:block th:text="${#session.removeAttribute('succMsg')}"></th:block>
+  </div>
+  <div th:if="${session.errorMsg}" class="flash-msg">
+    <div class="alert alert-danger alert-dismissible shadow">
+      <span th:text="${session.errorMsg}"></span>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    <th:block th:text="${#session.removeAttribute('errorMsg')}"></th:block>
+  </div>
+</div>
+
+<!-- ════════════════════ FOOTER ════════════════════ -->
+<div th:fragment="footer">
+  <footer class="footer">
+    <div class="container">
+      <div class="row g-4">
+        <div class="col-6 col-md-3">
+          <h6>Get to Know Us</h6>
+          <a href="#">About ShopEcom</a>
+          <a href="#">Careers</a>
+          <a href="#">Press Releases</a>
+          <a href="#">ShopEcom Science</a>
+        </div>
+        <div class="col-6 col-md-3">
+          <h6>Connect with Us</h6>
+          <a href="#">Facebook</a>
+          <a href="#">Twitter</a>
+          <a href="#">Instagram</a>
+          <a href="#">YouTube</a>
+        </div>
+        <div class="col-6 col-md-3">
+          <h6>Make Money with Us</h6>
+          <a href="#">Sell on ShopEcom</a>
+          <a href="#">Affiliate Program</a>
+          <a href="#">Advertise Your Products</a>
+        </div>
+        <div class="col-6 col-md-3">
+          <h6>Let Us Help You</h6>
+          <a href="#">Your Account</a>
+          <a th:href="@{/user/my-orders}">Your Orders</a>
+          <a href="#">Returns &amp; Replacements</a>
+          <a href="#">Help</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <div class="logo mb-2" style="color:#fff;font-size:1.2rem;font-weight:800;">
+          Shop<span style="color:#f0c14b;">Ecom</span>
+        </div>
+        <p>© 2025 ShopEcom. All rights reserved. | Built by Aryan Singh Chauhan</p>
+        <p style="font-size:.75rem;">This is a portfolio project demonstrating production-grade DevOps on AWS EKS</p>
+      </div>
+    </div>
+  </footer>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</div>
+
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{base :: head('Product Details - ShopEcom')}"></head>
+<body>
+<div th:replace="~{base :: navbar}"></div>
+
+<div class="container py-5">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a th:href="@{/}" class="text-warning">Home</a></li>
+      <li class="breadcrumb-item"><a th:href="@{/products}" class="text-warning">Products</a></li>
+      <li class="breadcrumb-item active" th:text="${product.category}">Category</li>
+    </ol>
+  </nav>
+
+  <!-- Product Detail -->
+  <div class="row g-5">
+
+    <!-- Product Image -->
+    <div class="col-md-5">
+      <div class="card border-0 shadow-sm p-3 text-center">
+        <img th:src="@{/img/product_img/{img}(img=${product.image})}"
+             th:alt="${product.title}"
+             class="img-fluid rounded"
+             style="max-height:400px;object-fit:contain;"
+             onerror="this.src='/img/ecom.png'"/>
+      </div>
+      <!-- Thumbnail placeholder -->
+      <div class="d-flex gap-2 mt-3 justify-content-center">
+        <img th:src="@{/img/product_img/{img}(img=${product.image})}"
+             class="border rounded p-1" style="width:70px;height:70px;object-fit:cover;cursor:pointer;"
+             onerror="this.src='/img/ecom.png'"/>
+      </div>
+    </div>
+
+    <!-- Product Info -->
+    <div class="col-md-7">
+      <span class="badge bg-warning text-dark mb-2" th:text="${product.category}">Category</span>
+      <h2 class="fw-bold mb-2" th:text="${product.title}">Product Title</h2>
+
+      <!-- Rating -->
+      <div class="mb-3">
+        <span class="text-warning fs-5">⭐⭐⭐⭐⭐</span>
+        <span class="text-muted ms-2">(124 ratings)</span>
+        <span class="badge bg-success ms-2">Bestseller</span>
+      </div>
+
+      <!-- Price -->
+      <div class="mb-4 p-3 bg-light rounded">
+        <div class="d-flex align-items-baseline gap-3">
+          <span class="display-6 fw-bold text-success" th:text="'₹' + ${product.discountPrice}">₹0</span>
+          <span th:if="${product.discount > 0}"
+                class="text-muted text-decoration-line-through fs-5"
+                th:text="'₹' + ${product.price}">₹0</span>
+          <span th:if="${product.discount > 0}"
+                class="badge bg-danger fs-6"
+                th:text="${product.discount} + '% OFF'">OFF</span>
+        </div>
+        <small class="text-success">✓ Inclusive of all taxes</small><br/>
+        <small class="text-info">✓ Free delivery on orders above ₹499</small>
+      </div>
+
+      <!-- Stock -->
+      <div class="mb-3">
+        <span th:if="${product.stock > 0}" class="text-success fw-bold">
+          ✅ In Stock (<span th:text="${product.stock}">0</span> available)
+        </span>
+        <span th:if="${product.stock == 0}" class="text-danger fw-bold">
+          ❌ Out of Stock
+        </span>
+      </div>
+
+      <!-- Add to Cart -->
+      <div class="d-flex gap-3 mb-4" th:if="${product.stock > 0}">
+        <sec:authorize access="isAuthenticated()">
+          <a th:href="@{/user/addCart(pid=${product.id}, uid=${user.id})}"
+             class="btn btn-warning btn-lg px-5 fw-bold">🛒 Add to Cart</a>
+          <a th:href="@{/user/addCart(pid=${product.id}, uid=${user.id})}"
+             class="btn btn-danger btn-lg px-5 fw-bold">⚡ Buy Now</a>
+        </sec:authorize>
+        <sec:authorize access="!isAuthenticated()">
+          <a th:href="@{/signin}" class="btn btn-warning btn-lg px-5 fw-bold">🛒 Add to Cart</a>
+          <a th:href="@{/signin}" class="btn btn-danger btn-lg px-5 fw-bold">⚡ Buy Now</a>
+        </sec:authorize>
+      </div>
+
+      <!-- Key Features -->
+      <div class="mb-4">
+        <h6 class="fw-bold">Key Features:</h6>
+        <ul class="list-unstyled">
+          <li>✓ High Quality Product</li>
+          <li>✓ Brand Warranty</li>
+          <li>✓ Free Installation (if applicable)</li>
+          <li>✓ 30-Day Easy Returns</li>
+        </ul>
+      </div>
+
+      <!-- Product Description -->
+      <div class="mb-4">
+        <h6 class="fw-bold">Description:</h6>
+        <p class="text-muted" th:text="${product.description}">Description</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Recommendation Box -->
+  <div th:if="${aiRecommendation}" class="my-5">
+    <div class="card border-0 shadow-sm"
+         style="background:linear-gradient(135deg,#fef9e7,#fef5d4);border-left:4px solid #f0c14b!important;">
+      <div class="card-body">
+        <h6 class="fw-bold mb-2">🤖 AI Shopping Assistant</h6>
+        <p class="mb-0 text-muted" th:text="${aiRecommendation}">Recommendation</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Similar Products -->
+  <div th:if="${similarProducts != null and !similarProducts.empty}" class="my-5">
+    <h4 class="fw-bold mb-4">👥 Customers Also Bought</h4>
+    <div class="row g-3">
+      <div class="col-6 col-md-3" th:each="sp : ${similarProducts}">
+        <div class="card border-0 shadow-sm h-100 product-hover">
+          <a th:href="@{/product/{id}(id=${sp.id})}">
+            <img th:src="@{/img/product_img/{img}(img=${sp.image})}"
+                 th:alt="${sp.title}" class="card-img-top"
+                 style="height:160px;object-fit:cover;"
+                 onerror="this.src='/img/ecom.png'"/>
+          </a>
+          <div class="card-body p-2">
+            <p class="small fw-semibold text-truncate mb-1" th:text="${sp.title}">Product</p>
+            <span class="text-success fw-bold" th:text="'₹' + ${sp.discountPrice}">₹0</span>
+            <span th:if="${sp.discount > 0}" class="badge bg-danger ms-1 small"
+                  th:text="${sp.discount} + '% OFF'">OFF</span>
+            <div class="mt-2">
+              <a th:href="@{/product/{id}(id=${sp.id})}"
+                 class="btn btn-sm btn-warning w-100">View</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div th:replace="~{base :: footer}"></div>
+
+<style>
+.product-hover:hover { transform:translateY(-3px); transition:.2s; box-shadow:0 6px 15px rgba(0,0,0,.12)!important; }
+</style>
+</body>
+</html>
