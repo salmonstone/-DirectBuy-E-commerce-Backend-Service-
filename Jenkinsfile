@@ -74,25 +74,33 @@ pipeline {
             }
         }
 
-       stage('☸️ Deploy to EKS') {
+      stage('☸️ Deploy to EKS') {
     steps {
         echo '--- Deploying to EKS ---'
+        sh 'aws eks update-kubeconfig --region ap-south-1 --name shopecom-cluster'
+        sh 'kubectl create namespace ${K8S_NS} --dry-run=client -o yaml | kubectl apply -f -'
         withCredentials([
             string(credentialsId: 'db-password',   variable: 'DB_PASSWORD'),
             string(credentialsId: 'mail-username', variable: 'MAIL_USERNAME'),
             string(credentialsId: 'mail-password', variable: 'MAIL_PASSWORD'),
             string(credentialsId: 'groq-api-key',  variable: 'GROQ_API_KEY')
         ]) {
-            sh 'aws eks update-kubeconfig --region ap-south-1 --name shopecom-cluster'
-            sh 'kubectl create namespace ${K8S_NS} --dry-run=client -o yaml | kubectl apply -f -'
-            sh "kubectl create secret generic shopecom-secrets --from-literal=DB_PASSWORD=${DB_PASSWORD} --from-literal=MAIL_USERNAME=${MAIL_USERNAME} --from-literal=MAIL_PASSWORD=${MAIL_PASSWORD} --from-literal=GROQ_API_KEY=${GROQ_API_KEY} --namespace=${K8S_NS} --dry-run=client -o yaml | kubectl apply -f -"
-            sh 'kubectl apply -f k8s/mysql.yaml --namespace=${K8S_NS}'
-            sh 'kubectl apply -f k8s/redis.yaml --namespace=${K8S_NS}'
-            sh 'kubectl rollout status deployment/mysql --namespace=${K8S_NS} --timeout=120s || true'
-            sh "sed -i 's|IMAGE_TAG_PLACEHOLDER|${IMAGE_TAG}|g' k8s/deployment.yaml"
-            sh 'kubectl apply -f k8s/ --namespace=${K8S_NS}'
-            sh 'kubectl rollout status deployment/${APP_NAME} --namespace=${K8S_NS} --timeout=300s'
+            sh '''
+                kubectl create secret generic shopecom-secrets \
+                    --from-literal=DB_PASSWORD="$DB_PASSWORD" \
+                    --from-literal=MAIL_USERNAME="$MAIL_USERNAME" \
+                    --from-literal=MAIL_PASSWORD="$MAIL_PASSWORD" \
+                    --from-literal=GROQ_API_KEY="$GROQ_API_KEY" \
+                    --namespace=shopecom \
+                    --dry-run=client -o yaml | kubectl apply -f -
+            '''
         }
+        sh 'kubectl apply -f k8s/mysql.yaml --namespace=${K8S_NS}'
+        sh 'kubectl apply -f k8s/redis.yaml --namespace=${K8S_NS}'
+        sh 'kubectl rollout status deployment/mysql --namespace=${K8S_NS} --timeout=120s || true'
+        sh "sed -i 's|IMAGE_TAG_PLACEHOLDER|${IMAGE_TAG}|g' k8s/deployment.yaml"
+        sh 'kubectl apply -f k8s/ --namespace=${K8S_NS}'
+        sh 'kubectl rollout status deployment/${APP_NAME} --namespace=${K8S_NS} --timeout=300s'
     }
 }
 
